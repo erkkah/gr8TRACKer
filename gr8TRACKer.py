@@ -129,6 +129,35 @@ def segment_to_float_array(segment):
 
     return result
 
+def segment_to_nparray(segment):
+    """
+    Convert from AudioSegment (interleaved packed arrays of integer samples)
+    to a 2D nparray of floats.
+    First dimension is channel index, second is float sample values
+    in the range of (-1.0, 1.0).
+    """
+
+    import numpy as np
+
+    channels = segment.channels
+    bits_per_sample = segment.sample_width * 8
+    # Assume signed values, centered around zero
+    max_sample_value = (1 << (bits_per_sample - 1)) - 1
+
+    samples = segment.get_array_of_samples();
+    frames = int(segment.frame_count())
+    assert(len(samples) == frames * channels)
+
+    def deinterleave(samples):
+        for c in range(0, channels):
+            for i in range(0, frames):
+                sample = samples[i * channels + c]
+                sample_value = sample / max_sample_value
+                yield sample_value
+
+    return np.fromiter(deinterleave(samples), np.float, frames * channels).reshape((channels, -1))
+
+
 def float_array_to_segment(samples, sample_rate):
     """
     Convert from 2D float array to 32 bit AudioSegment.
@@ -137,7 +166,7 @@ def float_array_to_segment(samples, sample_rate):
     assert(channels > 0)
     frames = len(samples[0])
 
-    bits_per_sample = 32
+    bits_per_sample = 16
     # Assume signed values, centered around zero
     max_sample_value = (1 << (bits_per_sample - 1)) - 1
 
@@ -147,24 +176,22 @@ def float_array_to_segment(samples, sample_rate):
                 yield samples[c][i]
 
     sample_data = (int(val * max_sample_value) for val in interleave(samples))
-    # Signed 32 bit int array
-    packed_data = array.array("i", sample_data)
+    # Signed 16 bit int array
+    packed_data = array.array("h", sample_data)
 
     # Use of undocumented constructor!
     return AudioSegment(data = packed_data.tostring(), metadata={
         "channels": channels,
-        "sample_width": 4,
+        "sample_width": 2,
         "frame_rate": sample_rate,
-        "frame_width": 4 * channels
+        "frame_width": 2 * channels
     })
 
 def repitch(segment, factor):
     import resampy
-    import numpy as np
 
     print("\tDeinterleaving...")
-    samples = segment_to_float_array(segment)
-    samples = np.array(samples)
+    samples = segment_to_nparray(segment)
 
     target_rate = segment.frame_rate / factor
     print("\tResampling...")
@@ -207,6 +234,8 @@ def build_from_dir(sourcedir, target, tracklen, padding, fadelen, pack = False, 
         tracklen = tracklen,
         padding = padding,
         fadelen = fadelen)
+
+    segments = None
 
     if pitch != 1.0:
         print("Pitching...")
