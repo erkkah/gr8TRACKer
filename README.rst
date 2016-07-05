@@ -6,7 +6,7 @@ You know the problem. You have a bunch of mp3s that you want to record to an
 8-track cartridge, but you would like to avoid that awful CLICK noise in the middle
 of songs by filling each track perfectly.
 
-Or - if fitting songs to tracks is really hard, at least add fade-out and fade-in
+Or - if fitting songs to tracks is really hard, at least fade out and in
 on track changes.
 
 If you recognize any of this, *this is the tool for you*!
@@ -28,15 +28,8 @@ track starts/ends so that a full tape can be recorded in one go.
 
 Most of the time, this is enough, sometimes you need to tweak stuff.
 
-.. |TM| unicode:: U+2122
-	:trim:
-
 The audio files are typically mp3 files, but can be of any format that libav_ or ffmpeg_
 supports, depending on your installation of pydub_. WAV files should always work.
-
-.. _libav: https://libav.org/
-.. _ffmpeg: http://www.ffmpeg.org/general.html#File-Formats
-.. _pydub: https://github.com/jiaaro/pydub
 
 Installation and operation
 ---------
@@ -64,3 +57,11 @@ Run ``python gr8TRACKer.py -h`` to list options and get basic help.
 Songs might get reordered, you migh need to tweak padding depending on tape lengths, et.c.
 
 Have fun and keep on 8-tracking!
+
+
+.. |TM| unicode:: U+2122
+	:trim:
+
+.. _libav: https://libav.org/
+.. _ffmpeg: http://www.ffmpeg.org/general.html#File-Formats
+.. _pydub: https://github.com/jiaaro/pydub
