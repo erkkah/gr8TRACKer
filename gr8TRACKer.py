@@ -68,7 +68,7 @@ def pack_tracks(segments, tracklen, padding, fadelen):
 
             if track_time_left < 20:
                 # Don't add a new song just to be cut short (20s?), go directly to next track
-                print(" [complete (padded with {:.2}s)]".format(track_time_left))
+                print(" [complete (padded with {:.2f}s)]".format(track_time_left))
 
                 first_half = AudioSegment.silent(split_point)
                 second_half = segment
