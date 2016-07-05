@@ -1,2 +1,4 @@
 docopt==0.6.2
 pydub==0.16.4
+numpy==1.11.1
+resampy==0.1.3

@@ -16,6 +16,7 @@ from docopt import docopt
 from pydub import AudioSegment
 from os import path
 from glob import iglob
+import array
 
 def s_to_minsec(s):
     rounded = round(s)
@@ -75,10 +76,10 @@ def pack_tracks(segments, tracklen, padding, fadelen):
                 second_half = segment
             else:
                 print(" [cut @ {}]".format(s_to_minsec(track_time_left)))
-            
+
                 first_half = segment[:split_point].fade_out(fadelen_ms)
                 second_half = segment[split_point:].fade_in(fadelen_ms)
-                
+
             master += first_half
             master += AudioSegment.silent(duration = padding_ms)
 
@@ -100,6 +101,77 @@ def pack_tracks(segments, tracklen, padding, fadelen):
     total = master.duration_seconds
     print("Built {} tracks, total length {}".format(track_count, s_to_minsec(total)))
     return master
+
+def segment_to_float_array(segment):
+    """
+    Convert from AudioSegment (interleaved packed arrays of integer samples)
+    to 2D array of floats.
+    First dimension is channel index, second is float sample values
+    in the range of (-1.0, 1.0).
+    """
+    channels = segment.channels
+    bits_per_sample = segment.sample_width * 8
+    # Assume signed values, centered around zero
+    max_sample_value = (1 << (bits_per_sample - 1)) - 1
+
+    samples = segment.get_array_of_samples();
+    frames = int(segment.frame_count())
+    assert(len(samples) == frames * channels)
+
+    result = [ [] for c in range(0, channels) ]
+
+    # De-interleave and scale
+    for i in range(0, frames):
+        for c in range(0, channels):
+            sample = samples[i * channels + c]
+            sample_value = sample / max_sample_value
+            result[c].append(sample_value)
+
+    return result
+
+def float_array_to_segment(samples, sample_rate):
+    """
+    Convert from 2D float array to 32 bit AudioSegment.
+    """
+    channels = len(samples)
+    assert(channels > 0)
+    frames = len(samples[0])
+
+    bits_per_sample = 32
+    # Assume signed values, centered around zero
+    max_sample_value = (1 << (bits_per_sample - 1)) - 1
+
+    def interleave(samples):
+        for i in range(0, frames):
+            for c in range(0, channels):
+                yield samples[c][i]
+
+    sample_data = (int(val * max_sample_value) for val in interleave(samples))
+    # Signed 32 bit int array
+    packed_data = array.array("i", sample_data)
+
+    # Use of undocumented constructor!
+    return AudioSegment(data = packed_data.tostring(), metadata={
+        "channels": channels,
+        "sample_width": 4,
+        "frame_rate": sample_rate,
+        "frame_width": 4 * channels
+    })
+
+def repitch(segment, factor):
+    import resampy
+    import numpy as np
+
+    print("\tDeinterleaving...")
+    samples = segment_to_float_array(segment)
+    samples = np.array(samples)
+
+    target_rate = segment.frame_rate / factor
+    print("\tResampling...")
+    resampled = resampy.resample(samples, segment.frame_rate, target_rate)
+
+    print("\tInterleaving...")
+    return float_array_to_segment(resampled, segment.frame_rate)
 
 def file_segments(sourcedir):
     pattern = path.join(sourcedir, "**")
@@ -136,15 +208,25 @@ def build_from_dir(sourcedir, target, tracklen, padding, fadelen, pack = False, 
         padding = padding,
         fadelen = fadelen)
 
-    # Do pitching here!
+    if pitch != 1.0:
+        print("Pitching...")
+        master = repitch(master, pitch)
 
     print("Writing track...")
     master.export(target, format = "wav")
 
     print("Done!")
-    
+
+
+def run_tests():
+    samples = [[0, 1, 0, -1, 0], [-1, 0, 1, 0, 1]]
+    segment = float_array_to_segment(samples, 11025)
+    reconstructed = segment_to_float_array(segment)
+    assert(samples == reconstructed)
 
 def main():
+    run_tests()
+
     arguments = docopt(__doc__, version = 'gr8tracker 0.5')
     #print(arguments)
 
