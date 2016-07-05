@@ -8,7 +8,6 @@ Options:
     --tracklen=<s>  Track length in minutes, full cartridge length is 4 times this.
     --padding=<s>   Minimum length of silence at start and end of tracks in seconds [default: 4]
     --fadelen=<s>   Length of fades in seconds, silence padding not included [default: 4]
-    --pitch=<f>     Pitch correction factor, values below 1.0 slow down [default: 1.0]
     --pack          Reorder songs to avoid cuts on track changes
 """
 
@@ -75,10 +74,10 @@ def pack_tracks(segments, tracklen, padding, fadelen):
                 second_half = segment
             else:
                 print(" [cut @ {}]".format(s_to_minsec(track_time_left)))
-            
+
                 first_half = segment[:split_point].fade_out(fadelen_ms)
                 second_half = segment[split_point:].fade_in(fadelen_ms)
-                
+
             master += first_half
             master += AudioSegment.silent(duration = padding_ms)
 
@@ -111,7 +110,7 @@ def file_segments(sourcedir):
                 yield([file, AudioSegment.from_file(file, type)])
                 break
 
-def build_from_dir(sourcedir, target, tracklen, padding, fadelen, pack = False, pitch = 1.0):
+def build_from_dir(sourcedir, target, tracklen, padding, fadelen, pack = False):
     segments = file_segments(sourcedir)
 
     if pack:
@@ -136,13 +135,11 @@ def build_from_dir(sourcedir, target, tracklen, padding, fadelen, pack = False, 
         padding = padding,
         fadelen = fadelen)
 
-    # Do pitching here!
-
     print("Writing track...")
     master.export(target, format = "wav")
 
     print("Done!")
-    
+
 
 def main():
     arguments = docopt(__doc__, version = 'gr8tracker 0.5')
@@ -155,7 +152,6 @@ def main():
         tracklen = int(arguments['--tracklen']),
         padding = int(arguments['--padding']),
         fadelen = int(arguments['--fadelen']),
-        pitch = float(arguments['--pitch']),
         pack = arguments['--pack'])
 
 if __name__ == '__main__':

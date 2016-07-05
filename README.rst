@@ -47,10 +47,7 @@ With all requirements resolved, running gr8TRACKer is easy:
 	python gr8TRACKer.py --tracklen 20 /mediafiles/Steely_Dan/Pretzel_Logic master.wav
 
 This will try to create a `master.wav` file that is 80 (four tracks times 20) minutes long.
-It will most likely complain, since the given album is only 33:14, but you get the idea.
-
-If your tape deck is like mine and runs slower than the nominal speed, you can use
-the ``--pitch=0.96`` option to pitch down the master before recording it to tape.
+This example will not make a full tape, since the given album is only 33:14, but you get the idea.
 
 Run ``python gr8TRACKer.py -h`` to list options and get basic help.
 
